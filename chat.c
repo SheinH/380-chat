@@ -7,13 +7,13 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <getopt.h>
-#include "limits.h"
+#include "dh.h"
+#include "keys.h"
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255
 #endif
-#include "dh.h"
-#include "keys.h"
 #include "util.h"
+#include "aes_encryption.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
@@ -26,6 +26,7 @@ static GtkTextMark*   mark; /* used for scrolling to end of transcript, etc */
 
 static pthread_t trecv;     /* wait for incoming messagess and post to queue */
 void* recvMsg(void*);       /* for trecv */
+
 
 #define max(a, b)         \
 	({ typeof(a) _a = a;    \
@@ -95,7 +96,7 @@ int initServerNet(int port)
 		error("error on accept");
 	close(listensock);
 	fprintf(stderr, "connection made, starting session...\n");
-    initDHK("server","client");
+    initDHK("server","client.pub");
     sendFirstMessage();
 
     /* at this point, should be able to send/recv on sockfd */
@@ -120,7 +121,7 @@ static int initClientNet(char* hostname, int port)
 	serv_addr.sin_port = htons(port);
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
 		error("ERROR connecting");
-    initDHK("client","server");
+    initDHK("client","server.pub");
     sendFirstMessage();
 	/* at this point, should be able to send/recv on sockfd */
 	return 0;
@@ -188,16 +189,20 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	GtkTextIter mend;   /* end of message pointer */
 	gtk_text_buffer_get_start_iter(mbuf,&mstart);
 	gtk_text_buffer_get_end_iter(mbuf,&mend);
-	char* message = gtk_text_buffer_get_text(mbuf,&mstart,&mend,1);
-	size_t len = g_utf8_strlen(message,-1);
+	char* plaintext = gtk_text_buffer_get_text(mbuf,&mstart,&mend,1);
+    size_t ciphertext_len;
+
+	size_t len = g_utf8_strlen(plaintext,-1);
+    unsigned char* message = encrypt_message(symmetric_key, plaintext, len, &ciphertext_len);
 	/* XXX we should probably do the actual network stuff in a different
 	 * thread and have it call this once the message is actually sent. */
 	ssize_t nbytes;
-	if ((nbytes = send(sockfd,message,len,0)) == -1)
+	if ((nbytes = send(sockfd,message,ciphertext_len,0)) == -1)
 		error("send failed");
 
-	tsappend(message,NULL,1);
+	tsappend(plaintext,NULL,1);
 	free(message);
+    free(plaintext);
 	/* clear message text and reset focus */
 	gtk_text_buffer_delete(mbuf,&mstart,&mend);
 	gtk_widget_grab_focus(w);
@@ -320,8 +325,6 @@ void* recvMsg(void*)
 	char msg[maxlen+2]; /* might add \n and \0 */
 	ssize_t nbytes;
     uint8_t state = 0;
-    const size_t klen = 128;
-    unsigned char key[klen];
     while (1) {
 		if ((nbytes = recv(sockfd,msg,maxlen,0)) == -1)
 			error("recv failed");
@@ -330,17 +333,18 @@ void* recvMsg(void*)
 			 * side has disconnected. */
 			return 0;
 		}
-        NEWZ(PKY);
         if(state == 0) {
-            BYTES2Z(PKY, msg,nbytes);
-            if(dh3Final(skA.SK,skA.PK,skX.SK,skX.PK,pkB.PK,PKY,key,klen) !=0 ){
-                error("Could not dh3final");
+            BYTES2Z(pkY.PK, msg,nbytes);
+            if(dh3Finalk(&skA,&skX,&pkB,&pkY,symmetric_key,KLEN) != 0 ){
+                error("Could not do dh3final");
             }
             state++;
             continue;
         }
+        size_t plaintext_len;
+        unsigned char *decrypted = decrypt_message(symmetric_key, msg, nbytes, &plaintext_len);
 		char* m = malloc(maxlen+2);
-		memcpy(m,msg,nbytes);
+		memcpy(m,decrypted,plaintext_len);
 		if (m[nbytes-1] != '\n')
 			m[nbytes++] = '\n';
 		m[nbytes] = 0;

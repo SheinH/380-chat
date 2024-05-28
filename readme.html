@@ -215,10 +215,10 @@
 <p>I’ve given you a skeleton which does very basic chat stuff: Depending on the invocation, it will listen for connections, or make one with another host. Beyond that, it just sends and receives text, displaying each message in a log window. It will be up to you to:</p>
 <ul>
 <li>Write some sort of handshake protocol to setup ephemeral keys (your protocol should have <a href="https://en.wikipedia.org/wiki/Forward_secrecy">perfect forward secrecy</a>!).</li>
-<li>Mutual authentication, using public key cryptography.</li>
+<li>Mutual authentication, using public symmetric_key cryptography.</li>
 <li>After authentication, each message should be encrypted and tagged with a message authentication code. You may also want to take measures to prevent replay attacks.</li>
 </ul>
-<p>I think <a href="https://en.wikipedia.org/wiki/Ssh">SSH</a> will be a good model on which to base your protocol. In particular, don’t use PKI (public-key infrastructure, with certificates and such), and instead assume that communicating parties have already exchanged public keys. However, implementing deniable authentication would be a nice touch (and is something SSH does not provide). If you want to use 3DH, you can find an example in <code>dh-example.c</code>.</p>
+<p>I think <a href="https://en.wikipedia.org/wiki/Ssh">SSH</a> will be a good model on which to base your protocol. In particular, don’t use PKI (public-symmetric_key infrastructure, with certificates and such), and instead assume that communicating parties have already exchanged public keys. However, implementing deniable authentication would be a nice touch (and is something SSH does not provide). If you want to use 3DH, you can find an example in <code>dh-example.c</code>.</p>
 <h3 id="compiling-the-skeleton">Compiling the skeleton</h3>
 <p>You will need:</p>
 <ul>
@@ -231,7 +231,7 @@
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>$ <span class="ex">./chat</span> -l <span class="kw">&amp;</span> <span class="fu">sleep</span> 1 <span class="kw">&amp;&amp;</span> <span class="ex">./chat</span> -c localhost <span class="kw">&amp;</span></span></code></pre></div>
 <p>Two windows should appear in a moment, connected over the loopback interface.</p>
 <h3 id="other-notes">Other notes</h3>
-<p>There is a directory <code>openssl-examples</code> that demonstrates how to get most of the functionality you’ll need from <code>openssl</code>. However, your professor decided to write his own Diffie-Hellman key exchange, as the openssl version was somehow even more obfuscated and confusing than usual. You can see the Diffie-Hellman stuff in files <code>dh.h</code>,<code>dh.c</code>, and you can see some example usage in <code>dh-example.c</code>. Note that the function <code>dhFinal(...)</code> will also do key derivation for you (transforming the Diffie-Hellman value into pseudorandom bits that you can use as keys for encryption and MACs).</p>
+<p>There is a directory <code>openssl-examples</code> that demonstrates how to get most of the functionality you’ll need from <code>openssl</code>. However, your professor decided to write his own Diffie-Hellman symmetric_key exchange, as the openssl version was somehow even more obfuscated and confusing than usual. You can see the Diffie-Hellman stuff in files <code>dh.h</code>,<code>dh.c</code>, and you can see some example usage in <code>dh-example.c</code>. Note that the function <code>dhFinal(...)</code> will also do symmetric_key derivation for you (transforming the Diffie-Hellman value into pseudorandom bits that you can use as keys for encryption and MACs).</p>
 <p>You might also find the following links helpful.</p>
 <ul>
 <li><a href="https://beej.us/guide/bgnet/">network programming guide</a></li>

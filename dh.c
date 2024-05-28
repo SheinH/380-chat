@@ -175,22 +175,22 @@ int dhFinal(mpz_t sk_mine, mpz_t pk_mine, mpz_t pk_yours, unsigned char* keybuf,
 	unsigned char PRK[maclen];
 	memset(PRK,0,maclen);
 	HMAC(EVP_sha512(),hmacsalt,strlen(hmacsalt),SK,nWritten,PRK,0);
-	/* Henceforth, use PRK as the HMAC key.  The initial chunk of derived key
+	/* Henceforth, use PRK as the HMAC symmetric_key.  The initial chunk of derived symmetric_key
 	 * is computed as HMAC_{PRK}(CTX || 0), where CTX = pk_A || pk_B, where
 	 * (pk_A,pk_B) is {pk_mine,pk_yours}, sorted ascending.
 	 * To generate further chunks K(i+1), proceed as follows:
 	 * K(i+1) = HMAC_{PRK}(K(i) || CTX || i). */
 	/* For convenience (?) we'll use a buffer named CTX that will contain
-	 * the previous key as well as the index i:
+	 * the previous symmetric_key as well as the index i:
 	 *         +------------------------+
 	 *  CTX == | K(i) | PK_A | PK_B | i |
 	 *         +------------------------+
 	 * */
 	const size_t ctxlen = maclen + 2*pLen + 8;
-	/* NOTE: the extra 8 bytes are to concatenate the key chunk index */
+	/* NOTE: the extra 8 bytes are to concatenate the symmetric_key chunk index */
 	unsigned char* CTX = malloc(ctxlen);
-	uint64_t index = 0;       /* key index */
-	uint64_t indexBE = index; /* key index, but always big endian */
+	uint64_t index = 0;       /* symmetric_key index */
+	uint64_t indexBE = index; /* symmetric_key index, but always big endian */
 	memset(CTX,0,ctxlen);
 	if (mpz_cmp(pk_mine,pk_yours) < 0) {
 		Z2BYTES(CTX+maclen,NULL,pk_mine);

@@ -32,7 +32,7 @@ int shredKey(dhKey* k)
 	return 0;
 }
 
-/* straightforward, lazy key format:
+/* straightforward, lazy symmetric_key format:
  * name:<name...>
  * pk:<base 10 rep of A>
  * sk:<base 10 rep of a>
@@ -43,8 +43,8 @@ int writeDH(char* fname, dhKey* k)
 {
 	assert(k);
 	/* NOTE if fname was already PATH_MAX-3 or longer, the name will be
-	 * cut off, and possibly we will have the public key overwrite the
-	 * secret key... */
+	 * cut off, and possibly we will have the public symmetric_key overwrite the
+	 * secret symmetric_key... */
 	if (strnlen(fname,PATH_MAX) > PATH_MAX-4) {
 		fprintf(stderr, "no room for .pub suffix in filename %s\n",fname);
 		return -2;
@@ -52,7 +52,7 @@ int writeDH(char* fname, dhKey* k)
 	char fnamepub[PATH_MAX+1]; fnamepub[PATH_MAX] = 0;
 	strncpy(fnamepub,fname,PATH_MAX);
 	strncat(fnamepub,".pub",PATH_MAX);
-	/* when saving secret key, make sure file isn't world-readable */
+	/* when saving secret symmetric_key, make sure file isn't world-readable */
 	int fd;
 	FILE* f;
 	if (mpz_cmp_ui(k->SK,0)) { /* SK present so write it */

@@ -6,8 +6,8 @@ HEADERS := $(wildcard *.h include/*.h)
 COMMON   := -O2 -Wall -Wformat=2 -Wno-format-nonliteral -march=native -DNDEBUG
 CFLAGS   := $(CFLAGS) $(COMMON)
 CXXFLAGS := $(CXXFLAGS) $(COMMON)
-CC       := gcc-14
-CXX      := g++-14
+CC       := gcc
+CXX      := g++
 LD       := $(CC)
 LDFLAGS  := $(LDFLAGS) # -L/path/to/libs/
 LDADD    := -lpthread -lcrypto $(shell pkg-config --libs gtk+-3.0 openssl gmp)
@@ -32,7 +32,7 @@ debug : all
 .PHONY : debug
 # }}}
 
-chat : $(IMPL) dh.o keys.o util.o
+chat : $(IMPL) dh.o keys.o util.o aes_encryption.o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDADD)
 
 dh-example : dh-example.o dh.o keys.o util.o
