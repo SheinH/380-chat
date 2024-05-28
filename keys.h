@@ -1,5 +1,6 @@
 /* Reading/writing public and secret keys */
 #pragma once
+#include <stdio.h>
 #include <gmp.h>
 
 #define MAX_NAME 128

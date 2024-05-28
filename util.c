@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <inttypes.h>
-#include <endian.h>
+#include "endian.h"
 #include <string.h>
 
 /* when reading long integers, never read more than this many bytes: */
@@ -77,4 +77,15 @@ int deserialize_mpz(mpz_t x, int fd)
 	xread(fd,buf,nB);
 	BYTES2Z(x,buf,nB);
 	return 0;
+}
+
+void printBytes(char* prefix, unsigned char* buf, size_t size) {
+    printf("%s",prefix);
+    if(size > 20){
+        size = 20;
+    }
+    for (size_t i = 0; i < size; i++) {
+        printf("%02x ", buf[i]);
+    }
+    printf("\n");
 }

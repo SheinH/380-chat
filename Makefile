@@ -6,12 +6,12 @@ HEADERS := $(wildcard *.h include/*.h)
 COMMON   := -O2 -Wall -Wformat=2 -Wno-format-nonliteral -march=native -DNDEBUG
 CFLAGS   := $(CFLAGS) $(COMMON)
 CXXFLAGS := $(CXXFLAGS) $(COMMON)
-CC       := gcc
-CXX      := g++
+CC       := gcc-14
+CXX      := g++-14
 LD       := $(CC)
 LDFLAGS  := $(LDFLAGS) # -L/path/to/libs/
-LDADD    := -lpthread -lcrypto -lgmp $(shell pkg-config --libs gtk+-3.0)
-INCLUDE  := $(shell pkg-config --cflags gtk+-3.0)
+LDADD    := -lpthread -lcrypto $(shell pkg-config --libs gtk+-3.0 openssl gmp)
+INCLUDE  := $(shell pkg-config --cflags gtk+-3.0 openssl gmp)
 DEFS     := # -DLINUX
 
 TARGETS  := chat dh-example

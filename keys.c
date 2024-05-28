@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include "util.h"
 #include <openssl/sha.h>
+#include <gmp.h>
+#include <stdbool.h>
 
 int initKey(dhKey* k)
 {
@@ -79,11 +81,43 @@ int readDH(char* fname, dhKey* k)
 	if (!f) return -1;
 	int rv = 0;
 	char* name;
-	/* TODO %ms might not be portable?  Also might not read spaces. */
-	if (fscanf(f,"name:%ms\n",&name) != 1) {
+
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read = getline(&line, &len, f);
+    if (read == -1) {
+        free(line);
 		rv = -2;
 		goto end;
-	}
+    }
+    if (read <= 5 || memcmp(line,"name:",5) != 0) {
+        rv = -2;
+        free(line);
+        goto end;
+    }
+    int i;
+    bool newLineFound = false;
+    for(i = 0; i < read; i++){
+        if(line[i] == '\n'){
+            line[i] = 0;
+            newLineFound = true;
+            break;
+        }
+    }
+    if(!newLineFound){
+        rv = -2;
+        free(line);
+        goto end;
+    }
+    size_t namelen = strlen(line+5);
+    name = malloc(namelen+1);
+    memcpy(name,line+5,namelen+1);
+    free(line);
+	/* TODO %ms might not be portable?  Also might not read spaces. */
+//	if (fscanf(f,"name:%ms\n",&name) != 1) {
+//		rv = -2;
+//		goto end;
+//	}
 	strncpy(k->name,name,MAX_NAME);
 	k->name[MAX_NAME] = 0; /* make sure it's a c-string */
 	free(name);

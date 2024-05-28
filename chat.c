@@ -7,8 +7,13 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <getopt.h>
+#include "limits.h"
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
 #include "dh.h"
 #include "keys.h"
+#include "util.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
@@ -31,11 +36,39 @@ void* recvMsg(void*);       /* for trecv */
 
 static int listensock, sockfd;
 static int isclient = 1;
+dhKey skA;
+dhKey pkB;
+dhKey skX;
+dhKey pkY;
 
 static void error(const char *msg)
 {
 	perror(msg);
 	exit(EXIT_FAILURE);
+}
+
+void initDHK(char* filename, char* other_filename){
+    int rv;
+    if((rv = readDH(filename,&skA)) != 0){
+        dhGenk(&skA);
+        writeDH(filename,&skA);
+    }
+    readDH(other_filename,&pkB);
+    dhGenk(&skX);
+    initKey(&pkY);
+}
+
+void sendFirstMessage(){
+    unsigned char* msgBuffer = malloc(pLen);
+    memset(msgBuffer, 0, pLen);
+    size_t nWritten; /* saves number of bytes written by Z2BYTES */
+    Z2BYTES(msgBuffer, &nWritten, skX.PK);
+    gmp_printf("PKX: %Zd \n", skX.PK);
+    printf("Wrote %zu bytes\n",nWritten);
+    printBytes("SENT: ",msgBuffer,nWritten);
+    ssize_t nbytes;
+    if ((nbytes = send(sockfd,msgBuffer,nWritten,0)) == -1)
+        error("send failed");
 }
 
 int initServerNet(int port)
@@ -62,7 +95,10 @@ int initServerNet(int port)
 		error("error on accept");
 	close(listensock);
 	fprintf(stderr, "connection made, starting session...\n");
-	/* at this point, should be able to send/recv on sockfd */
+    initDHK("server","client");
+    sendFirstMessage();
+
+    /* at this point, should be able to send/recv on sockfd */
 	return 0;
 }
 
@@ -84,6 +120,8 @@ static int initClientNet(char* hostname, int port)
 	serv_addr.sin_port = htons(port);
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
 		error("ERROR connecting");
+    initDHK("client","server");
+    sendFirstMessage();
 	/* at this point, should be able to send/recv on sockfd */
 	return 0;
 }
@@ -281,7 +319,10 @@ void* recvMsg(void*)
 	size_t maxlen = 512;
 	char msg[maxlen+2]; /* might add \n and \0 */
 	ssize_t nbytes;
-	while (1) {
+    uint8_t state = 0;
+    const size_t klen = 128;
+    unsigned char key[klen];
+    while (1) {
 		if ((nbytes = recv(sockfd,msg,maxlen,0)) == -1)
 			error("recv failed");
 		if (nbytes == 0) {
@@ -289,6 +330,15 @@ void* recvMsg(void*)
 			 * side has disconnected. */
 			return 0;
 		}
+        NEWZ(PKY);
+        if(state == 0) {
+            BYTES2Z(PKY, msg,nbytes);
+            if(dh3Final(skA.SK,skA.PK,skX.SK,skX.PK,pkB.PK,PKY,key,klen) !=0 ){
+                error("Could not dh3final");
+            }
+            state++;
+            continue;
+        }
 		char* m = malloc(maxlen+2);
 		memcpy(m,msg,nbytes);
 		if (m[nbytes-1] != '\n')

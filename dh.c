@@ -8,7 +8,7 @@
 #include <gmp.h>
 #include "dh.h"
 #include <string.h>
-#include <endian.h>
+#include "endian.h"
 #include <assert.h>
 #include "util.h"
 
