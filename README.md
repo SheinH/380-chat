@@ -1,7 +1,7 @@
 # 380-chat
 
 ### Shein Htike
-In this code, the chat app first uses triple diffe-hellman to initally exchange keys over the websocket.
+In this code, the chat app first uses triple Diffie-Hellman to initally exchange keys over the websocket.
 Both parties require only the other party's public key.
 
 After a key exchange, both parties should now have a symmetric key.
@@ -15,7 +15,7 @@ that no HMAC is required for message authentication purposes.
 
 In summary, this protocol:
 
-* **Has forward secrecy** - A unique session key is used for every connection.
+* **Has forward secrecy** - A unique derived key is used for every connection.
 * **Has mutual authentication** - Triple diffie-hellman key exchange ensures that only the person with the correct secret
 key can get the same KDF output.
 * **Is resilient against replay attacks** - A nonce counter prevents replaying while using minimal memory compared to a random nonce.
@@ -26,6 +26,7 @@ Security flaws:
 * I did not implement any handling for messages that are too long.
 * It is possible that the program has a memory leak somewhere
 * Situations such as invalid session keys simply cause the program to halt without wiping RAM.
+* A more secure RNG should be used for both long term and ephemeral key generation.
 
 
 If I had more time, those flaws could have been addressed.
